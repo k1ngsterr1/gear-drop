@@ -1,0 +1,34 @@
+{
+  "name": "gear-drop",
+  "version": "0.1.0",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "engines": {
+    "node": "^22.12.0 || >=24.0.0"
+  },
+  "scripts": {
+    "dev": "npm run build:contracts && concurrently -k -n api,web \"npm run dev -w @gear-drop/api\" \"npm run dev -w @gear-drop/web\"",
+    "dev:api": "npm run build:contracts && npm run dev -w @gear-drop/api",
+    "dev:web": "npm run build:contracts && npm run dev -w @gear-drop/web",
+    "db:generate": "npm run db:generate -w @gear-drop/api",
+    "db:migrate": "npm run db:migrate -w @gear-drop/api",
+    "db:seed": "npm run db:seed -w @gear-drop/api",
+    "check": "npm run build:contracts && npm run db:generate && npm run typecheck:tooling && npm run typecheck --workspaces --if-present && npm run check:architecture && npm test -w @gear-drop/api",
+    "check:architecture": "tsx --test scripts/architecture.test.ts",
+    "test:integration": "npm run build:contracts && npm run test:integration -w @gear-drop/api",
+    "test:browser": "playwright test",
+    "build": "npm run build:contracts && npm run build -w @gear-drop/api && npm run build -w @gear-drop/web",
+    "typecheck:tooling": "tsc --noEmit -p tsconfig.json",
+    "build:contracts": "npm run build -w @gear-drop/contracts"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.64.1",
+    "@types/node": "24.10.1",
+    "concurrently": "9.2.5",
+    "tsx": "4.23.15",
+    "typescript": "5.9.3"
+  }
+}

@@ -1,0 +1,55 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/infrastructure/generated"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Product {
+  slug        String    @id
+  name        String
+  category    String
+  description String
+  detail      String
+  image       String
+  priceCents  Int
+  featured    Int
+  variants    Variant[]
+
+  @@index([category, featured, slug])
+}
+
+model Variant {
+  id          String  @id
+  productSlug String
+  product     Product @relation(fields: [productSlug], references: [slug])
+  label       String
+  swatch      String
+  stock       Int
+  position    Int
+
+  @@index([productSlug, position])
+}
+
+model Order {
+  id             String     @id @default(uuid())
+  idempotencyKey String     @unique
+  requestHash    String
+  totalCents     Int
+  createdAt      DateTime   @default(now())
+  items          OrderItem[]
+}
+
+model OrderItem {
+  orderId        String
+  order          Order  @relation(fields: [orderId], references: [id])
+  variantId      String
+  name           String
+  variant        String
+  quantity       Int
+  unitPriceCents Int
+
+  @@id([orderId, variantId])
+}

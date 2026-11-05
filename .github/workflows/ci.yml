@@ -1,0 +1,53 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main, master]
+
+permissions:
+  contents: read
+
+jobs:
+  checks:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    env:
+      NEXT_TELEMETRY_DISABLED: '1'
+    services:
+      postgres:
+        image: postgres:16.13-bookworm
+        env:
+          POSTGRES_DB: gear_drop_test
+          POSTGRES_USER: gear_drop
+          POSTGRES_PASSWORD: gear_drop_ci
+        ports:
+          - 5432/tcp
+        options: >-
+          --health-cmd "pg_isready -U gear_drop -d gear_drop_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 12
+
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci
+      - run: npm run check
+      - name: Configure test database
+        env:
+          POSTGRES_PORT: ${{ job.services.postgres.ports['5432'] }}
+        run: echo "DATABASE_URL=postgresql://gear_drop:gear_drop_ci@127.0.0.1:${POSTGRES_PORT}/gear_drop_test" >> "$GITHUB_ENV"
+      - run: npm run db:migrate
+      - run: TEST_DATABASE_URL="$DATABASE_URL" npm run test:integration
+      - run: npm run db:seed
+      - run: npm run build
+      - run: npx playwright install --with-deps chromium
+      - run: npm run test:browser
+        env:
+          PLAYWRIGHT_START_SERVERS: '1'
